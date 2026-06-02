@@ -1,0 +1,21 @@
+from pathlib import Path
+
+DATA_DIR = Path(__file__).parent / "data_cache"
+
+SP500_URL = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
+BACKTEST_START_DATE = "2005-01-01"
+BACKTEST_END_DATE = "2025-12-31"
+
+MOMENTUM_WINDOW = 12
+SKIP_RECENT = 1
+MIN_HISTORY_MONTHS = 13
+
+N_QUANTILES = 10
+LONG_QUANTILE = 10
+SHORT_QUANTILE = 1
+MIN_PRICE = 5.0
+
+BENCHMARK_TICKER = "SPY"
+ANNUALIZATION_FACTOR = 12
+ROLLING_SHARPE_WINDOW = 36
+

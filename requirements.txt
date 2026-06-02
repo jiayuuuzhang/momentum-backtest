@@ -1,0 +1,9 @@
+pandas
+numpy
+yfinance
+pandas-datareader
+statsmodels
+matplotlib
+lxml
+htm15lib
+beautifulsoup4

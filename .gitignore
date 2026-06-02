@@ -1,0 +1,24 @@
+# Private notes
+INTERVIEW_QUESTIONS.md
+CONCEPTS.md
+
+# Cached data (regenerable, large files)
+data_cache/
+
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
