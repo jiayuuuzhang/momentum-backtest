@@ -95,19 +95,18 @@ The backtest is frictionless. With realistic costs (5–30 bps one-way) and ~30%
 
 ### Momentum Crash Sensitivity
 
-The strategy is exposed to "momentum crashes" — periods like March 2009 when prior losers violently rebound. See Daniel & Moskowitz (2016), "Momentum Crashes" for the canonical reference.
-
+The strategy is exposed to "momentum crashes", periods like March 2009 when prior losers violently rebound.
 ## Interpreting the Results
 
 The observed strategy performance (negative Sharpe, large drawdown in 2009) is consistent with academic findings on naive momentum strategies. The two main drivers:
 
-1. **2009 momentum crash** — Short leg got destroyed when beaten-down stocks rebounded
-2. **Survivorship bias** in the short leg — Compounds the above effect
+1. **2009 momentum crash**  Short leg got destroyed when beaten-down stocks rebounded
+2. **Survivorship bias** in the short leg, Compounds the above effect
 
 The Fama-French regression typically shows:
-- Strongly negative HML beta — the textbook momentum signature
-- No statistically significant alpha — momentum offers no free lunch in this naive form
-- R² around 15–20% — most variance is idiosyncratic
+- Strongly negative HML beta
+- No statistically significant alpha 
+- R² around 15–20% 
 
 ## Dependencies
 
