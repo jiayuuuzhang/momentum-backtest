@@ -1,75 +1,92 @@
-# 基础 S&P 500 动量策略：历史成分股版本
+# S&P 500 Momentum Strategy with Historical Membership
 
-基于 https://github.com/adithya1309/momentum-backtest 修改。每个形成日期只在当时属于 S&P 500 的股票中排名，禁止退回到当前成分股名单。
+Adapted from [adithya1309/momentum-backtest](https://github.com/adithya1309/momentum-backtest). Each formation-date ranking is restricted to stocks that belonged to the S&P 500 on that date. The program does not fall back to today's constituent list.
 
-## 运行
+## Installation and execution
 
-双击 `run.command`，或运行：
+From a fresh checkout:
 
 ```bash
-cd "/Users/zhangjiayu/Desktop/momentum-backtest"
+cd momentum-backtest
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
 .venv/bin/python main.py
+```
+
+The desktop copy already has a virtual environment and cached prices. On macOS, you can also double-click `run.command`. After downloading through GitHub, run `chmod +x run.command` if necessary.
+
+The first run in a fresh environment downloads market prices. The repository package includes the strategy, tests, historical-membership inputs, saved results, and research review; it excludes the local virtual environment and bulk price caches. Downloaded prices may change if the vendor revises its history.
+
+Results are written to `outputs/`. The default backtest runs from **October 1, 2021 through September 30, 2026**, covering 60 complete months. Price history begins on July 1, 2020; the preceding 15 months initialize the signal and do not contribute to backtest performance. Calendar-year results cover only October-December in 2021 and January-September in 2026.
+
+## Strategy rules
+
+1. At each formation month-end, select the latest historical-membership snapshot whose effective date is no later than the formation date. A stock becomes eligible only once its addition is effective. A removed stock cannot enter a new portfolio unless it subsequently rejoins.
+2. Mark all securities on SPY's last actual trading day of the month. Do not carry a suspended or delisted stock's earlier quote forward to month-end. Compute 12-1 momentum as `P(t-1) / P(t-12) - 1`, skipping the latest month. Both signal endpoints must have prices, and the formation-date adjusted price must be at least $5.
+3. Buy the **10 highest-ranked stocks** and short the **10 lowest-ranked stocks**. Each long has a +10% target weight; each short has a -10% target weight. Each leg has 100% notional exposure, for 200% gross exposure. Ties are resolved by a stable ticker sort.
+4. Hold for the following month and rebalance monthly. An index removal during the holding month does not trigger an additional trade. If a held security has no return because of a delisting or another data gap, the backtest stops rather than silently deleting the position or assigning a zero return.
+5. Apply a default one-way transaction cost of 10 basis points to turnover, including position drift and initial establishment. Final liquidation is excluded. Evaluate SPY over the same return months.
+
+## Historical-membership inputs
+
+The history comes from `S&P 500 Historical Components & Changes (Updated).csv` in [fja05680/sp500](https://github.com/fja05680/sp500), pinned to commit `a2430f2af0c79ddf0748e91de11bdeb1616ab5a7`. Source records, the change log, and the MIT license are retained locally under `data_cache/membership/`. The upload package includes the normalized snapshots, provenance metadata, change log, license, ticker mappings, and identity checks.
+
+The upstream file's last change is dated August 18, 2026. An [official S&P announcement](https://press.spglobal.com/2026-09-04-Bloom-Energy%2C-Illumina%2C-and-Everpure-Set-to-Join-S-P-500-Others-to-Join-S-P-100%2C-S-P-MidCap-400%2C-and-S-P-SmallCap-600) supplies the September 21, 2026 additions of BE, P, and ILMN and removals of TAP, TTD, and BLDR. An announcement date is not an effective inclusion date. September positions are formed at the end of August, so September 21 additions cannot enter that September portfolio early.
+
+Normalized snapshots are stored in `data_cache/membership/snapshots.csv`. Each row contains an effective date and the complete constituent set on that date; membership remains effective until the next change. The accompanying `.metadata.json` records the source, commit, coverage endpoint, and SHA-256 checksum. Dates before the first snapshot or beyond the declared coverage endpoint are rejected.
+
+This is a community reconstruction, not a licensed official security master. Its maintainer notes that Wikipedia's selected changes do not provide a complete history. It corrects the direct use of today's members but does not establish that every historical record is error-free.
+
+## Market prices, ticker changes, and delistings
+
+Prices come from Yahoo Finance with `auto_adjust=True` explicitly enabled. The download universe is the union of historical members across all formation dates, including companies subsequently removed from the index.
+
+Ticker mappings and their sources are stored in `ticker_aliases.csv`, including FB to META and GPS to GAP. Membership is checked under the historical ticker before using a provider's current price label. A renamed price series does not grant early index eligibility. Historical FRC prices use the same failed bank's OTC ticker FRCB; JPMorgan's prices are not used as an acquirer proxy. FBHS uses the adjusted history served under the same company's renamed FBIN ticker.
+
+Yahoo currently resolves `PARA` to Banzai/Parabolic rather than historical Paramount, and `INFO` to a Harbor PanAgora ETF rather than historical IHS Markit. Both incorrect series are explicitly rejected. Acquirer or unrelated-company prices are not substituted for missing histories. Identity checks are retained in `identity_checks_*.json`.
+
+**Some delisted or acquired securities still lack historical prices.** They remain visible in the membership audit but cannot be ranked when prices or signal endpoints are unavailable. They are not replaced with present-day survivors. Results therefore describe the **available-price subset of historical members**, with residual data-coverage bias; they are not a complete survivorship-bias-free backtest. Missing held-security returns stop the run. The program never assumes that every delisted security becomes worthless or earns a zero return.
+
+Use `--prices-csv` to supply more complete genuine adjusted daily prices, including SPY. Columns may use historical tickers or mapped provider tickers as supported by `data.py`. Genuine user-supplied historical PARA or INFO data are allowed; the rejection applies to Yahoo's currently reused symbols.
+
+## Output files
+
+All files below are written under `outputs/`:
+
+| File | Contents |
+|---|---|
+| `report.json` | Total return, annualized return and volatility, zero-risk-free-rate Sharpe, month-end maximum drawdown, membership provenance, missing symbols, price paths, and limitations |
+| `monthly_returns.csv` | Monthly gross and net returns, transaction costs, SPY returns, turnover, position counts, historical-member counts, and eligible-stock counts |
+| `annual_returns.csv` | Compounded calendar-year or partial-year returns and the number of included months |
+| `holdings.csv` | Formation date, return month, historical ticker, provider ticker, target weight, signal, and membership-snapshot date |
+| `membership_audit.csv` | Every historical member at each formation date, prices, signals, eligibility, and exclusion reasons |
+| `unavailable_members.csv` | Members excluded because of missing prices, insufficient signal history, or the minimum-price filter |
+| `data_coverage.csv` | Historical-to-provider ticker mapping, observation count, and first and last available prices |
+| `audit_checks.csv` | Independent checks of membership, exact top/bottom 10 selection, and return arithmetic |
+| `stock_contributions.csv` | Individual monthly contributions to gross returns; summing these across months is not compounded capital-profit attribution |
+| `tearsheet.png` | Equity curves, month-end drawdowns, annual or partial-year returns, and summary metrics |
+| `run_status.json` | Completion status or missing-held-price error |
+| `PIT_CHANGELOG.md` | Historical-universe correction notes |
+
+The desktop's former current-universe top/bottom 10 results are archived in `outputs_current_universe_top10_2021-10_2026-09/`. The old 617.82% result is not the corrected strategy result. Earlier percentage-based runs are archived separately. These local archives are not part of the latest-results upload package.
+
+## Configuration and verification
+
+```bash
+# Disable transaction costs and save a separate run
+.venv/bin/python main.py --cost-bps 0 --output outputs_no_cost
+
+# Supply adjusted daily prices from another source
+.venv/bin/python main.py --prices-csv /absolute/path/adjusted_prices.csv
+
+# Supply effective-date membership snapshots and a verified coverage endpoint
+.venv/bin/python main.py --membership-csv /absolute/path/snapshots.csv --membership-through 2026-09-30
+
+# Recheck saved results and run the tests
 .venv/bin/python audit_results.py
 .venv/bin/python -m unittest discover -s tests -v
 ```
 
-结果默认保存到 `outputs/`。日期为 **2021-10-01 至 2026-09-30，共 60 个月**。行情从 2020-07-01 开始，前 15 个月用于信号预热。年度表 2021 年仅含 10–12 月，2026 年仅含 1–9 月。
+The bundled membership history is covered through September 30, 2026. `--refresh` redownloads prices but does not update membership. Extending the backtest requires updated membership records and coverage metadata as well as prices.
 
-## 策略
-
-1. 在每个形成月末查找最后一个生效日期不晚于该日的历史成员快照。加入日期之后才允许选入；移除后不能形成新持仓，之后重新加入则重新具备成员资格。
-2. 所有股票按 SPY 当月最后实际交易日取价，不把提前停牌/退市前的旧报价前填到月末。对当时成员计算 12–1 动量：P(t−1)/P(t−12)−1。信号端点需有价格，形成月末复权价至少 $5。
-3. 买入排名最高的 **10 只**，做空最低的 **10 只**；每只多头 +10%、每只空头 −10%，总名义敞口 200%。并列按 ticker 稳定排序。
-4. 持有下一个月，月末重新平衡。月内被指数移除不触发额外交易，仍持有至下次调仓；如果退市导致持仓缺少收益，回测报错，不能随意删除持仓或填零。
-5. 默认单边交易成本 10 bps，按包含持仓漂移的换手计算，含首次建仓，不含最后清仓；SPY 使用同一回测月份。
-
-## 历史成员数据与来源
-
-历史记录来自 [fja05680/sp500](https://github.com/fja05680/sp500) 的 `S&P 500 Historical Components & Changes (Updated).csv`，固定到提交 `a2430f2af0c79ddf0748e91de11bdeb1616ab5a7`。原始文件、变更日志和 MIT 许可证都保存在 `data_cache/membership/`。
-
-源文件最后一项变更是 2026-08-18，另根据 [S&P 官方公告](https://press.spglobal.com/2026-09-04-Bloom-Energy%2C-Illumina%2C-and-Everpure-Set-to-Join-S-P-500-Others-to-Join-S-P-100%2C-S-P-MidCap-400%2C-and-S-P-SmallCap-600) 补入 2026-09-21 生效的 BE、P、ILMN 加入与 TAP、TTD、BLDR 移除。公告日不等于加入日。9 月持仓在 8 月末形成，因此 9 月 21 日的新成员不能提前进入 9 月组合。
-
-规范化快照在 `data_cache/membership/snapshots.csv`，每行是一个生效日期及当日完整成员集合；有效性持续到下一次变更。`.metadata.json` 记录来源、提交、覆盖截止和 SHA-256。超过明确覆盖日期或早于首个快照，程序报错。
-
-这是社区重建的成员历史，并非 S&P 许可的完整证券主表；维护者也注明 Wikipedia 的 Selected Changes 不是完整历史。它纠正了直接使用当前名单的问题，但不能宣称数据绝对无误。
-
-## 价格、旧代码与退市数据
-
-价格来自 Yahoo Finance，显式 `auto_adjust=True`。下载范围是所有形成日期历史成员的并集，包含后来被移除的股票，不只是今天仍在指数里的股票。
-
-纯更名映射及来源保存在 `ticker_aliases.csv`，例如 FB→META、GPS→GAP。形成日期仍使用历史成员代码，不能因行情供应商使用新标签而提前获得指数资格。First Republic 历史代码 FRC 使用同一失败银行的 OTC 代码 FRCB 历史行情；没有使用收购方 JPM 的价格替代。FBHS 使用同股更名 FBIN 的复权历史。
-
-已核实 Yahoo 的 `PARA` 被 Banzai/Parabolic 复用，不是历史 Paramount；`INFO` 是 Harbor PanAgora ETF，不是历史 IHS Markit。这两个错误序列明确拒绝使用。没有用收购方或不相关公司的行情来填缺口。证券身份检查记录保存在 `identity_checks_*.json`。
-
-**部分退市/收购证券的历史行情仍不可获取。**这些股票仍保留在历史成员审计表中，因缺行情或动量端点不足而不能排名，不会被当前幸存公司替换。因此结果是“历史成员中可获取行情的子集”，仍有数据覆盖偏差，不能称为完整无幸存者偏差回测。已持有股票缺收益则停止，绝不自行推断退市归零或收益为零。
-
-`--prices-csv` 可提供更完整的真实复权日价格（包括 SPY）；列名可以使用历史代码或映射后的 provider 代码，请按 data.py 口径准备。用户提供的真实历史 PARA/INFO 可用，不适用对 Yahoo 当前复用代码的拒绝规则。
-
-## 结果与审计文件
-
-- `report.json`：累计收益、年化收益、年化波动率、零无风险利率 Sharpe、最大月末回撤、成员来源、缺失股票、价格路径和限制。
-- `monthly_returns.csv`：月度毛/净收益、成本、SPY、换手、持仓数、历史成员数和可用排名数。
-- `annual_returns.csv`：自然年内复合收益及有效月数。
-- `holdings.csv`：形成日期、持有月份、历史代码、价格代码、权重、信号及所用成员快照日期。
-- `membership_audit.csv`：每个形成日期的所有历史成员、行情/信号、是否可排名及原因。
-- `unavailable_members.csv`：上述成员中因价格缺失、历史不足或低价过滤而未能排名的条目。
-- `data_coverage.csv`：历史代码对应行情代码、数据条数和首尾日期。
-- `audit_checks.csv`：独立核对每期成员资格、最高/最低各 10 只及收益算术。
-- `stock_contributions.csv`：每只股票每个月对毛收益的贡献；跨月简单求和不是复合累计利润归因。
-- `tearsheet.png`：净值、月末回撤、年度/部分年度收益与摘要。
-- `run_status.json`：运行是否完成或因持仓价格缺失而停止。
-
-旧的当前股票池 top/bottom 10 结果保存在 `outputs_current_universe_top10_2021-10_2026-09/`，原来 617.82% 不应作为本次修正后的收益。旧百分比分组结果另有归档。
-
-## 参数
-
-```bash
-.venv/bin/python main.py --cost-bps 0 --output outputs_no_cost
-.venv/bin/python main.py --prices-csv /absolute/path/adjusted_prices.csv
-# 自定义有效日期快照，须显式给出已核实的覆盖截止
-.venv/bin/python main.py --membership-csv /absolute/path/snapshots.csv --membership-through 2026-09-30
-```
-
-当前固定快照覆盖截至 2026-09-30。`--refresh` 重新下载价格，不会自动更新成员历史。扩展回测时间必须同时补充成员记录和覆盖说明。
-
-月末回撤不包含月内低点；不含借券费、融资成本、借券可得性及实际成交限制。此次只修正股票池和证券映射，不为降低或提高收益而调参。
+Month-end drawdown excludes within-month lows. Borrow fees, financing, borrow availability, and actual execution constraints are not modeled. The research review in `research_review/RESEARCH_REVIEW.md` documents these limitations and the reconstructed daily-risk diagnostics. Universe and ticker corrections do not tune the strategy to raise or lower returns.

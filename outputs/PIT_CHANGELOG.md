@@ -1,17 +1,17 @@
-# 历史股票池修正记录
+# Historical-Universe Correction Log
 
-回测区间：2021-10-01 至 2026-09-30（60 个月）；行情预热自 2020-07-01。
+Backtest interval: October 1, 2021 through September 30, 2026, covering 60 months. Signal-initialization prices begin on July 1, 2020.
 
-- 每期按生效日期查历史成员，然后排名；没有当时成员资格的股票不得入选。
-- 固定买最高 10 只、做空最低 10 只；各端 100%，成本 10 bps，未改变策略参数。
-- 全部 1,200 条持仓已独立核对历史成员资格、排名、权重和收益；11 项测试通过。
-- 历史成员代码并集 608 个，44 个无价格序列；缺口见 unavailable_members.csv。
-- First Republic FRC 使用同银行 FRCB 的可获取历史；未以 JPM 等收购方代替。
-- 拒绝使用被其他证券复用的 PARA 和 INFO 当前 Yahoo 序列。
-- 月末按 SPY 最后实际交易日取价，禁止把提前停牌或退市报价前填至月末。
+- Look up historical constituents by effective date before ranking. Securities that were not members on the formation date cannot be selected.
+- Buy the highest-ranked 10 stocks and short the lowest-ranked 10 stocks. Each leg targets 100% notional exposure. One-way transaction costs remain 10 basis points. Strategy parameters were not changed to target a preferred result.
+- Independently verify all 1,200 holding records for membership, ranking, target weights, and return arithmetic. All 11 tests passed.
+- The union contains 608 historical ticker labels. Forty-four have no price series; see `unavailable_members.csv` for data and eligibility gaps.
+- Historical FRC prices use the same bank's available FRCB history, not JPMorgan or another acquirer as a proxy.
+- Reject Yahoo's reused PARA and INFO symbols when they identify unrelated securities.
+- Mark positions on SPY's actual final trading day of each month. Do not carry suspended or delisted securities' earlier quotes forward to month-end.
 
-新结果（扣设定交易成本）：累计 107.56%，年化 15.73%，最大月末回撤 -36.16%。
+Corrected available-data results, net of the specified transaction costs: total return **107.56%**, annualized return **15.73%**, and maximum month-end drawdown **-36.16%**.
 
-旧的当前股票池结果 617.82% 不再是默认结果，归档在 outputs_current_universe_top10_2021-10_2026-09/。
+The former current-universe result of 617.82% is no longer the default. Its desktop archive is `outputs_current_universe_top10_2021-10_2026-09/`.
 
-仍有历史成员行情缺失、社区成员记录可能不完整、未计借券与融资费用等限制，不能称为完全无幸存者偏差的实盘收益。
+Missing historical prices, possible gaps in community membership reconstruction, and excluded borrowing and financing costs remain. These results must not be described as fully survivorship-bias-free or executable live-trading performance.

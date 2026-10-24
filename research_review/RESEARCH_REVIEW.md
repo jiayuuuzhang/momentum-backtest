@@ -1,132 +1,132 @@
-# 动量策略研究审计
+# Momentum Strategy Research Review
 
-审计日期：2026-10-23。对象为桌面 momentum-backtest 当前历史成员、固定 top/bottom 10 版本。此审计没有修改策略参数、源行情或正式 outputs。数值基于现有缓存重算，不能视为独立供应商验证。
+Review date: October 23, 2026. Scope: the desktop `momentum-backtest` project, using historical membership and fixed top/bottom 10 selection. The review did not change strategy parameters, source prices, or official outputs. Numerical diagnostics were recomputed from the existing cache and do not constitute independent vendor validation.
 
-## 研究判断
+## Research assessment
 
-目前可作为基础动量策略的研究原型，尚不足以证明稳定、可执行的超额收益。主要风险来自行情缺失、证券身份/公司行动处理、月频风险展示、短端执行与借券成本，以及结果对 2026 年极端行情的依赖。不能因收益高就认定错误，也不能因收益下降到 107.56% 就认定正确。
+The project is a basic momentum research prototype. It does not yet establish stable, executable excess returns. Main concerns are missing histories, security identity and corporate-action handling, monthly risk reporting, short execution and borrowing costs, and dependence on extreme 2026 returns. High returns alone do not prove an error; reducing total return to 107.56% does not prove correctness either.
 
-## 已确认的内部一致性
+## Confirmed internal consistency
 
-- 回测 2021-10 至 2026-09，60 个月；每期多头和空头各 10 只，各端目标 100%，并非各 10%。
-- 已有历史成员约束，已检查形成日成员资格；没有证据显示仍在直接用当前名单选股。
-- 独立重算月度毛收益、成本和复合净收益，与保存结果一致。
-- 11 项测试已通过；它们证明特定逻辑一致，不证明供应商行情、成员历史和成交假设正确。
+- The backtest covers October 2021 through September 2026: 60 months, with exactly 10 longs and 10 shorts per month. Each leg targets 100% notional exposure; selection is by fixed count, not 10% of the universe.
+- Formation-date historical membership is enforced and checked. There is no evidence that selection still directly uses today's constituent list.
+- Independently recomputed monthly gross returns, costs, and compounded net returns match the saved results.
+- All 11 tests passed. They establish consistency for specified behaviors, not the correctness of vendor histories, membership records, or execution assumptions.
 
-## 1. 高优先级：历史股票池仍是可获取行情的子集
+## 1. High priority: the historical universe remains an available-price subset
 
-历史成员并集 608 个代码，其中 44 个无任何价格序列；46 个在所有形成日都没有有效价格。每期历史成员 503–505 个，实际可排名 465–498 个，平均 480.7 个。30,197 个成员月份中，1,256 条没有形成日价格，97 条缺动量端点，2 条低于阈值。
+The historical union contains 608 ticker labels. Forty-four have no price series, and 46 have no valid price at any formation date. Historical membership counts range from 503 to 505; eligible ranking counts range from 465 to 498, averaging 480.7. Of 30,197 member-month records, 1,256 lack a formation-date price, 97 lack a signal endpoint, and two fail the price threshold.
 
-缺失并非可假设为随机：退市、收购、失败公司更难下载。修正加入/移除日期没有解决缺失价格和退市收益。偏差方向不能仅凭缺失名称确定，需要补齐数据后重新测算。
+Missingness cannot be assumed random: delisted, acquired, and failed companies are harder to retrieve. Correcting inclusion and removal dates does not supply missing prices or delisting returns. The direction of the bias cannot be inferred from ticker names alone; complete data are needed to measure it.
 
-代码：backtest.py 的 eligible_signals 中，缺值在排名前被 dropna；持仓收益缺失报错只保护已选持仓，无法保护那些因历史数据缺失而从未入选的公司。
+In `backtest.py`, `eligible_signals` drops missing values before ranking. The missing-held-return error protects selected positions but cannot protect companies that were never selected because their histories were unavailable.
 
-应对：补全缺失/退市公司行情和终止收益，至少对缺失证券、日期与原因逐一建档；完整股票池结果和可获取子集结果必须分别标示。
+Required work: obtain missing and delisted histories and terminal returns; at minimum, document each missing security, date, and reason. Distinguish complete-universe results from available-subset results.
 
-## 2. 高优先级：日度风险远大于月末报表显示
+## 2. High priority: daily risk materially exceeds month-end reported risk
 
-按原始月末固定持仓、同一复权日价格、同一月度成本重建日收盘净值，没有日内重新平衡。有效日 1,254 个、缺失日 0，月末收益最大对账误差 2.22e-16。
+Daily closing equity was reconstructed using the original fixed monthly holdings, the same adjusted daily prices, and the same monthly costs, without daily rebalancing. There were 1,254 valid dates and no missing daily marks. The maximum month-end reconciliation error was approximately 2.22e-16.
 
-- 正式月末最大回撤：36.16%。
-- 重建日收盘最大回撤：51.15%，出现在 2026-07-29。
-- 月内最大总名义敞口/净值：约 342.33%，尽管每期初目标为 200%。
+- Official maximum month-end drawdown: **36.16%**.
+- Reconstructed maximum daily closing drawdown: **51.15%**, reached on July 29, 2026.
+- Maximum within-month gross notional exposure divided by equity: approximately **342.33%**, despite a 200% target at each rebalance.
 
-日收盘回撤仍不含盘中低点，不能当作盘中最大风险。现有程序不检查日度保证金、强平、召回或资金耗尽。不能推断一定触发某券商强平，但目前也无法证明能持有到月末。
+Daily closing drawdown still excludes intraday lows. The program does not check daily margin, liquidation, loan recalls, or equity exhaustion. This does not establish that a particular broker would have liquidated the account; it means the ability to maintain positions until month-end has not been demonstrated.
 
-应对：每日估值、敞口、资金与保证金检查，并保留月末指标作为另一种观察频率。
+Required work: daily valuation, exposure, cash, and margin checks, while retaining month-end statistics as a separate reporting frequency.
 
-## 3. 高优先级：收益高度依赖最后九个月
+## 3. High priority: profits depend heavily on the final nine months
 
-- 2021-10 至 2025-12：51 个月累计 -8.93%。
-- 2026-01 至 2026-09：9 个月累计 +127.91%。
-- 全 60 个月：累计 +107.56%，年化 15.73%。
+- October 2021-December 2025: 51 months, cumulative return **-8.93%**.
+- January-September 2026: nine months, cumulative return **+127.91%**.
+- All 60 months: cumulative return **+107.56%**, annualized return **15.73%**.
 
-单月净收益前三：2026-04 +40.58%、2026-06 +25.51%、2026-01 +24.84%。将这三个月收益仅作压力诊断设为零、其余月份不变，累计变成 -5.77%。这不是可执行策略，也不表示应该删除极端月份，而是显示结果依赖程度。
+The three largest positive net-return months were April 2026 (+40.58%), June 2026 (+25.51%), and January 2026 (+24.84%). As a concentration diagnostic only, setting those three returns to zero while leaving the other months unchanged produces a cumulative return of -5.77%. This is not an executable alternative strategy or a recommendation to discard extreme months.
 
-2026-04 多头含 CIEN、COHR、FIX、LITE、MU、SNDK、STX、TER、VRT、WDC。其中 MU、SNDK、STX、WDC 合计占多头名义金额 40%，组合存在显著相关行业暴露。
+April 2026 longs were CIEN, COHR, FIX, LITE, MU, SNDK, STX, TER, VRT, and WDC. MU, SNDK, STX, and WDC represented 40% of long notional exposure, illustrating substantial exposure to related businesses.
 
-尝试从第二供应商 Stooq 交叉获取 2026 年关键股票价格，接口返回 404，未完成独立价格验证。必须保留这个证据边界。
+An attempt to cross-check important 2026 prices against Stooq returned HTTP 404 responses. Independent vendor price validation was not completed, and that limitation must remain explicit.
 
-应对：首先独立核对关键行情和公司行动，再扩展预先固定参数的历史样本、滚动窗口和行业归因；不以降低收益为目标调参。
+Required work: independently verify important price moves and corporate actions, then examine longer fixed-parameter histories, rolling windows, and industry attribution. Do not tune parameters merely to reduce reported returns.
 
-## 4. 高优先级：短端的可执行性和成本未建立
+## 4. High priority: short execution and financing assumptions are incomplete
 
-当前默认所有最弱股票都可按预定权重卖空，没有历史可借数量、借券费率、召回、强制买回、抵押品和现金利息模型。10 bps 按交易金额计算，不能替代按持仓天数收取的借券费。
+The program assumes that all selected losers can be shorted at their target weights. It has no historical borrow inventory, borrow rates, recalls, forced buy-ins, collateral, or cash-interest model. A 10-basis-point trading charge is not a substitute for borrowing fees accrued over holding time.
 
-只做量级压力测试：假设空头名义金额始终近似本金 100%，每月额外扣“假设年借券费/12”，不计融资与现金利息：
+The following is only a rough sensitivity exercise: assume short notional remains approximately 100% of equity and deduct the assumed annual borrow rate divided by 12 each month. Financing and cash interest are not included.
 
-| 假设年借券费 | 年化收益 |
+| Assumed annual borrow fee | Annualized strategy return |
 |---|---:|
-| 0%（当前） | 15.73% |
+| 0%, current convention | 15.73% |
 | 1% | 14.58% |
 | 3% | 12.32% |
 | 5% | 10.10% |
 | 10% | 4.72% |
 
-这些是假设，不是历史真实借券费率，也不是完整成本后回测。利息项不一定全为负，需根据真实账户、抵押品与融资规则建模。
+These are hypothetical rates, not historical observed borrowing costs or a complete after-cost backtest. Interest effects need not all be negative; actual account, collateral, and financing rules matter.
 
-参考：[IBKR 借券费说明](https://www.interactivebrokers.com/campus/traders-insight/securities/short-selling/the-risks-of-shorting-series-part-ii-borrow-fees/)。
+Reference: [IBKR explanation of borrow fees](https://www.interactivebrokers.com/campus/traders-insight/securities/short-selling/the-risks-of-shorting-series-part-ii-borrow-fees/).
 
-## 5. 明确代码问题：合法的归零退市结算值无法接入
+## 5. Confirmed implementation gap: genuine zero terminal values cannot be ingested
 
-位置：data.py 71–72 行。所有小于等于零的价格都会直接触发 Nonpositive adjusted prices。
+At the reviewed version's `data.py` lines 71-72, any price less than or equal to zero raises `Nonpositive adjusted prices`.
 
-已用独立临时 CSV 复现：历史价格 10，真实终止结算价 0，SPY 有正常价格，程序仍拒绝整个文件。这是处理全损证券的能力缺口。合法终止支付为零不能与坏行情混为一谈；也不能把所有退市都统一设零。
+An independent temporary CSV reproduced the issue: a prior price of 10, a genuine terminal settlement value of zero, and valid SPY prices cause rejection of the entire file. This is a gap in handling a security's total loss. A documented zero terminal payment is not the same as bad price data; not every delisting should be assigned a zero value either.
 
-应对：将普通交易价格验证与事件型终止收益分开，使用有来源、日期和事件类型的终止支付/退市收益表。处理 -100% 单证券收益与剩余现金，禁止凭空推断。
+Required work: separate ordinary trading-price validation from event-based terminal returns. Use a documented terminal-payment or delisting-return table with sources, dates, and event types. Support a security-level -100% return and remaining cash without fabricating values.
 
-参考：[CRSP 退市收益定义](https://wrds-www.wharton.upenn.edu/documents/400/CRSP_Programmers_Guide.pdf)。
+Reference: [CRSP delisting-return definitions](https://wrds-www.wharton.upenn.edu/documents/400/CRSP_Programmers_Guide.pdf).
 
-## 6. 执行时序和公司行动仍为近似
+## 6. Execution timing and corporate actions remain approximations
 
-代码从形成月末的复权价判断 $5 阈值，又按该月末价作为下月收益起点；没有订单、开盘价、成交量或撮合模块。动量排名跳过最近一个月，因此不能简单指控信号本身用了下个月涨幅；真正的问题是形成时筛选、目标数量和理想同收盘成交没有拆开。
+The code checks the $5 threshold using the formation month's adjusted close and also uses that close as the next holding period's entry reference. It has no order submission, opening-price, volume, or matching model. Momentum skips the latest month, so this is not evidence that the signal directly uses next month's performance. The issue is the failure to separate formation-time filtering, target quantities, and idealized same-close execution.
 
-auto_adjust=True 的价格比值可近似总收益，但不能直接当可成交价格或真实股数；最新复权价做历史 $5 阈值会受到后续分红/拆股调整影响。当前阈值仅排除了两条记录，所以不能在未重算前把主要收益差异归因于它。
+Price ratios with `auto_adjust=True` can approximate total returns, but adjusted prices are not executable prices or actual share counts. Applying today's adjusted-price scale to a historical $5 threshold can be affected by subsequent dividends or splits. Only two records failed the current threshold, so its effect should not be blamed for the principal performance differences without a separate calculation.
 
-更名映射仅按 ticker 字符串，没有完整稳定证券ID、股类、换股、分拆分配和终止现金流主表。现有审计未发现持仓跨更名造成重复交易的实例，但映射方式仍需在扩展数据时完善。已拒绝 PARA/INFO 复用代码，不代表其他全体证券均完成独立历史身份核验。
+Rename mappings use ticker strings rather than a complete stable security-ID, share-class, conversion, spin-off distribution, and terminal-cash-flow master. The review found no held rename event causing duplicate trades in this run, but the mapping design requires improvement before extending the data. Rejecting reused PARA and INFO histories does not establish that all other historical identities have been independently checked.
 
-应对：分开原始交易价、总收益、公司行动及证券主表；固定信息截止和下一可执行时点，再做成交敏感性测试。
+Required work: separate executable prices, total returns, corporate actions, and security identities. Specify information cutoffs and the next executable trading time, then test execution sensitivity.
 
-## 7. 单看“跑赢 SPY”不足以证明超额收益
+## 7. Beating SPY in raw return does not establish excess-return skill
 
-| 指标 | 当前策略 | SPY |
+| Metric | Current strategy | SPY |
 |---|---:|---:|
-| 年化收益 | 15.73% | 13.70% |
-| 年化月收益波动率 | 40.86% | 15.67% |
-| 零无风险利率 Sharpe | 0.558 | 0.901 |
+| Annualized return | 15.73% | 13.70% |
+| Annualized volatility from monthly returns | 40.86% | 15.67% |
+| Zero-risk-free-rate Sharpe | 0.558 | 0.901 |
 
-策略风险大得多，且总名义敞口 200%，SPY 为 100% 多头；净敞口零不代表市场 beta 或行业敞口零。当前 60 个月的单市场回归 beta 约 0.25，但不足以做完整风险归因。
+The strategy takes substantially more risk and starts each month with 200% gross notional exposure, compared with a 100% long SPY position. Zero net notional does not imply zero market beta or zero industry exposure. A diagnostic market-only regression over these 60 months estimates beta near 0.25, but it is not a complete risk attribution.
 
-月均收益的简单独立同分布 t 值约 1.25，不构成很强的统计证据；收益存在极端值与相关性时，这个简单 t 值本身也不充分。
+The simple independent-and-identically-distributed t-statistic for mean monthly returns is approximately 1.25, which is weak evidence. Extreme observations and dependence also limit that simple statistic.
 
-应对：加入现金收益和正确风险调整、风险匹配基准、行业与动量/规模/价值因子归因，并给出不确定性而非只展示点估计。
+Required work: consistent cash and risk-free-rate accounting, risk-matched benchmarks, industry and momentum/size/value factor attribution, and uncertainty estimates rather than point estimates alone.
 
-## 8. 空头组合未证明有必要
+## 8. The benefit of the short leg has not been established
 
-沿用同一批每月持仓，单独把两端各按 100% 名义金额复合、都不扣交易/借券成本：多头腿累计 +293.56%，空头腿累计 -49.75%。两端不能把累计收益直接相加得到策略收益；此处仅作独立腿诊断。
+Using the same monthly selections, independently compound each leg at 100% notional exposure without trading or borrowing costs: the long leg returns +293.56%, while the short leg returns -49.75%. These cumulative returns cannot be added to recover the combined portfolio return; this is a standalone-leg diagnostic.
 
-应对：正式比较完整多空、相同选股的纯多头、SPY、等权股票池，分别建模成本和风险。不要仅因原 GitHub 做空就默认做空端有增益。
+Required work: formally compare the full long-short strategy, the same long selections without shorts, SPY, and an equal-weight universe, with their own costs and risk measures. The original GitHub strategy's use of shorts does not establish that shorts add value here.
 
-## 9. 稳健性与研究流程不足
+## 9. Robustness and research design are insufficient
 
-只有 60 个月且已观察过结果，当前不是严格未见样本。10% 改成 10 只是用户的明确要求，并非必然构成收益导向过拟合；但若继续根据同一窗口表现选择数量/窗口，就会产生数据窥探。
+There are only 60 months, and their outcomes have already been examined. This is not a strictly unseen sample. Changing from 10% to 10 stocks was the user's explicit specification and is not automatically performance-driven overfitting. Repeatedly choosing counts or windows based on this same period would, however, introduce data snooping.
 
-缺少预先规定的样本内/样本外分割、多个市场阶段、参数邻域稳定性、调仓日期与成交延迟敏感性、行业集中度/容量限制及净收益置信区间。无需把所有风控都强加到基础策略，但必须测量这些暴露。
+Missing work includes a prespecified in-sample/out-of-sample design, multiple market regimes, parameter-neighborhood stability, rebalance-date and execution-delay sensitivity, industry-concentration and capacity analysis, and confidence intervals for net performance. A basic strategy does not need every possible risk control, but its exposures must be measured.
 
-应对：先固定研究方案再运行对照，而不是看结果后挑最优参数。
+Required work: fix the study design before running comparisons rather than selecting the best parameters after observing results.
 
-## 10. 工程与结果状态问题
+## 10. Engineering and result-state issues
 
-- main.py 在写完指标、图片和独立审计前就写 complete_available_data，后续失败可能留下“已完成”的旧状态。
-- 同一 outputs 目录直接覆盖各文件，没有原子发布/唯一 run ID；失败可能混合新覆盖表与旧收益。
-- 成员快照有 SHA-256，价格缓存只有文件路径，没有内容哈希；--refresh 可改变同名文件，原报告与原价格未完全绑定。
-- 固定的社区成员覆盖日期和官方补充尚未形成完整事件级双来源核验。
+- `main.py` writes `complete_available_data` before all metrics, charts, and independent audits finish. A later failure can leave an outdated completed status.
+- Files in one `outputs` directory are overwritten individually, without atomic publication or a unique run ID. A failed run can mix new coverage tables with old return files.
+- Membership snapshots have a SHA-256 checksum, but price caches are recorded by path rather than content hash. `--refresh` can replace a same-named file, so a report is not fully bound to its original price contents.
+- The community-history coverage declaration and official extension have not undergone complete event-by-event, two-source verification.
 
-应对：每次独立运行目录、原始行情/配置/代码/来源哈希、审计通过后原子更新 latest，并区分“计算完成”“数据完整”“独立验证通过”。
+Required work: separate run directories; hashes for prices, configurations, code, and sources; atomic updates to a `latest` pointer after audit success; and distinct states for calculation completion, data completeness, and independent validation.
 
-## 处理顺序
+## Recommended order of work
 
-1. 建立证券身份与公司行动主表，补全缺失/退市价格及终止收益；核对驱动 2026 收益的关键行情。
-2. 改为每日估值、明确成交时序、借券与资金约束；增加日度回撤和总敞口。
-3. 固定研究方案，做分阶段、纯多头/多空、风险匹配和参数稳定性对照。
-4. 最后才考虑修改策略规则。没有理由为了“看起来正常”而压低或美化收益。
+1. Establish security identities and corporate-action records. Complete missing and delisted price histories and terminal returns, and verify the important 2026 price moves.
+2. Add daily valuation, explicit execution timing, borrowing and funding constraints, daily drawdowns, and exposure reporting.
+3. Fix the research plan and compare subperiods, long-only versus long-short portfolios, matched-risk benchmarks, and parameter stability.
+4. Only then consider strategy changes. Do not suppress or embellish returns to make them appear more normal.

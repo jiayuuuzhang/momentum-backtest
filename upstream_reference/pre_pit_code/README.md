@@ -1,55 +1,55 @@
-# 基础 S&P 500 动量策略
+# Basic S&P 500 Momentum Strategy: Archived Current-Universe Version
 
-基于 https://github.com/adithya1309/momentum-backtest 修改。本项目只使用历史价格，不使用新闻或情绪模型。
+Adapted from https://github.com/adithya1309/momentum-backtest. This archived version uses historical prices only, without news or sentiment models. It predates the point-in-time membership correction and must not be mistaken for the current production version.
 
-## 策略规则
+## Strategy rules
 
-1. 股票池沿用当前 S&P 500 成分股。
-2. 每个月末计算 12–1 动量：P(t−1) / P(t−12) − 1，跳过最近一个月。
-3. 买入动量最高的 10 只，做空最低的 10 只；两端分别等权，各 100% 名义敞口，每只多头 +10%、每只空头 −10%。固定数量配置为 `config.py` 的 `LONG_COUNT` 和 `SHORT_COUNT`。
-4. 持有一个月，每月再平衡；形成月末复权价格不足 $5 的股票不进入新持仓。
-5. 默认单边交易成本 10 bps，按换手计算；SPY 为基准。
+1. Use the current S&P 500 constituent list as the stock universe.
+2. Compute monthly 12-1 momentum as `P(t-1) / P(t-12) - 1`, skipping the latest month.
+3. Buy the 10 highest-momentum stocks and short the 10 lowest-momentum stocks. Equal-weight each leg at 100% notional exposure: +10% per long and -10% per short. Fixed counts are configured by `LONG_COUNT` and `SHORT_COUNT` in `config.py`.
+4. Hold for one month and rebalance monthly. Exclude stocks whose formation-date adjusted price is below $5.
+5. Apply a default one-way transaction cost of 10 basis points to turnover. Compare with SPY.
 
-默认回测 2021-10-01 至 2026-09-30，共五年、60 个完整月份（2021 年和 2026 年为部分自然年）。额外下载 15 个月价格作为信号预热，不计入回测收益。本次完整行情缓存为 2020-07-01 至 2026-09-30，共 1,570 个交易日，包含 502 个股票代码及 SPY；部分股票历史较短。
+The default backtest interval is October 1, 2021 through September 30, 2026, covering 60 complete months. Calendar years 2021 and 2026 are partial. Download an additional 15 months for signal initialization, excluded from reported returns. At the time of this archived run, the price cache covered July 1, 2020 through September 30, 2026: 1,570 trading dates, 502 stock tickers, and SPY. Some securities have shorter histories.
 
-## 本机运行
+## Running the project
 
-双击同目录的 `run.command`，或在终端运行：
+Run the current project's `run.command`, or use the terminal from the project root:
 
 ```bash
-cd "/Users/zhangjiayu/Desktop/momentum-backtest"
+cd momentum-backtest
 .venv/bin/python main.py
 ```
 
-环境已安装，真实行情已缓存。其他机器先运行 `python3 -m venv .venv`，再运行 `.venv/bin/python -m pip install -r requirements.txt`。
+The desktop environment and price cache were prepared locally. On another machine, first run `python3 -m venv .venv`, then `.venv/bin/python -m pip install -r requirements.txt`.
 
-可选参数：
+Options supported by the archived version:
 
 ```bash
-# 修改日期：起点须为月初，终点非月末时只计算完整月份
+# The start must be the first day of a month; incomplete ending months are excluded
 .venv/bin/python main.py --start 2021-10-01 --end 2026-09-30
-# 不计算交易成本
+# Disable transaction costs
 .venv/bin/python main.py --cost-bps 0 --output outputs_no_cost
-# 从其他来源导入复权日收盘价：首列日期，其余列为 ticker，必须含 SPY
+# Import adjusted daily closes; the first column is the date, and SPY is required
 .venv/bin/python main.py --prices-csv /absolute/path/prices.csv
-# 重新下载价格；成分股名单仍使用缓存
+# Redownload prices while retaining the cached constituent list
 .venv/bin/python main.py --refresh
 ```
 
-## 结果文件
+## Files and archives
 
-- `outputs/tearsheet.png`：净值、回撤、逐年收益图。
-- `outputs/annual_returns.csv`：逐年收益和有效月数。
-- `outputs/report.json`：总收益、年化收益、波动率、Sharpe、最大月末回撤及数据来源。
-- `outputs/monthly_returns.csv`：每月策略毛收益、成本、净收益、SPY 收益、换手及持仓数。
-- `outputs/holdings.csv`：每月持仓、权重、形成日期和信号。
-- `outputs/data_coverage.csv`：各股票行情覆盖数量。
-- `data_cache/`：Yahoo 真实复权行情和股票池缓存。
+- `outputs/tearsheet.png`: equity curves, drawdown, and annual returns.
+- `outputs/annual_returns.csv`: annual or partial-year returns and included months.
+- `outputs/report.json`: total return, annualized return, volatility, Sharpe, maximum month-end drawdown, and provenance.
+- `outputs/monthly_returns.csv`: gross return, cost, net return, SPY return, turnover, and position counts.
+- `outputs/holdings.csv`: monthly securities, weights, formation dates, and signals.
+- `outputs/data_coverage.csv`: price observation counts.
+- `data_cache/`: Yahoo adjusted price histories and the cached stock universe.
 
-最新固定 10/10 策略结果见 `outputs/report.json`。原百分比策略的 2021-10 至 2026-09 结果保存在 `outputs_deciles_2021-10_2026-09/`。旧版 2021–2025 结果保存在 `outputs_2021-2025/`。年度收益表中的 2021 年仅含 10–12 月，2026 年仅含 1–9 月，不能当作完整年度收益。
+Current corrected results live in the project root's `outputs/`. The earlier percentage-based October 2021-September 2026 results are in `outputs_deciles_2021-10_2026-09/`; the earlier 2021-2025 results are in `outputs_2021-2025/`. These archives may be present only in the desktop project. The 2021 rows cover October-December, and the 2026 rows cover January-September, not full calendar years.
 
-## 回测口径
+## Archived backtest conventions and limitations
 
-使用当前成分股存在幸存者偏差，不是历史逐时点成分股回测。没有价格的股票记录在 report.json；新上市股票需有足够历史后才能选入。选股只使用形成时已知数据；持仓收益缺失时明确报错。回撤按月末计算；不含借券费用、融资成本、现金利息和最终清仓成本。$5 筛选使用复权价格近似。原仓库 20 年图仅存于 `upstream_reference/` 作为参考。
+This version uses current constituents, introducing survivorship bias, and is not a point-in-time universe backtest. Missing symbols are listed in `report.json`. New listings require sufficient historical prices before selection. Selection uses formation-time price inputs; missing held-stock returns raise an error. Drawdown uses month-end marks. Borrow fees, financing, cash interest, and final liquidation costs are excluded. The $5 screen uses adjusted prices as an approximation. The original upstream 20-year chart is retained under `upstream_reference/` for reference only.
 
-验证命令：`.venv/bin/python -m unittest discover -s tests -v`。
+Verification command: `.venv/bin/python -m unittest discover -s tests -v`.
