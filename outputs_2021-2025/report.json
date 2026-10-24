@@ -1,0 +1,37 @@
+{
+  "source": "Yahoo Finance; auto_adjust=True",
+  "warmup_start": "2019-10-01",
+  "requested_stock_count": 503,
+  "stocks_without_prices": [
+    "FDXF",
+    "HONA",
+    "VYLR"
+  ],
+  "requested_start": "2021-01-01",
+  "requested_end": "2025-12-31",
+  "actual_first_month": "2021-01-31",
+  "actual_last_month": "2025-12-31",
+  "cost_bps": 10,
+  "universe": "current S&P500; survivorship bias",
+  "gross_exposure": 2,
+  "short_borrow_and_financing": "excluded",
+  "drawdown_frequency": "monthly",
+  "metrics": {
+    "strategy": {
+      "months": 60,
+      "total_return": 0.12341788819641852,
+      "annualized_return": 0.023548124803340675,
+      "annualized_volatility": 0.18946390670402533,
+      "sharpe_rf_zero": 0.2173648383832479,
+      "max_drawdown_monthly": -0.2960800726578797
+    },
+    "SPY": {
+      "months": 60,
+      "total_return": 0.9538798551173435,
+      "annualized_return": 0.1433509871188443,
+      "annualized_volatility": 0.15136894232400797,
+      "sharpe_rf_zero": 0.964656185757949,
+      "max_drawdown_monthly": -0.23927181189055746
+    }
+  }
+}

@@ -1,0 +1,1 @@
+Intermediate diagnostic run before discovering Yahoo PARA/INFO ticker reuse. Not a final result. Use ../../outputs instead.

@@ -1,0 +1,257 @@
+{
+  "baseline": {
+    "months": 60,
+    "total_return": 1.075572483652317,
+    "cagr": 0.15725104308087756,
+    "vol": 0.40857904653495086,
+    "sharpe0": 0.5575765798291294
+  },
+  "pre_2026": {
+    "months": 51,
+    "total_return": -0.0893166209751709,
+    "cagr": -0.02177357422994608,
+    "vol": 0.2895443285924792,
+    "sharpe0": 0.06864064026447973
+  },
+  "2026": {
+    "months": 9,
+    "total_return": 1.2791373285794077,
+    "cagr": 1.999351230996897,
+    "vol": 0.7443433326172705,
+    "sharpe0": 1.8890993464047108
+  },
+  "coverage_reason_counts": {
+    "eligible": 28842,
+    "no_formation_price": 1256,
+    "missing_lookback_price": 97,
+    "price_below_minimum": 2
+  },
+  "coverage_per_month": {
+    "sum": {
+      "count": 60.0,
+      "mean": 480.7,
+      "std": 9.53014841508564,
+      "min": 465.0,
+      "25%": 474.0,
+      "50%": 479.0,
+      "75%": 489.0,
+      "max": 498.0
+    },
+    "count": {
+      "count": 60.0,
+      "mean": 503.28333333333336,
+      "std": 0.6661721329614917,
+      "min": 503.0,
+      "25%": 503.0,
+      "50%": 503.0,
+      "75%": 503.0,
+      "max": 505.0
+    }
+  },
+  "turnover_mean_monthly": 1.5049314743720148,
+  "cost_sum_monthly": 0.09029588846232088,
+  "top_months": [
+    {
+      "Date": "2026-04-30",
+      "return": 0.40583330983213695
+    },
+    {
+      "Date": "2026-06-30",
+      "return": 0.2551075100937769
+    },
+    {
+      "Date": "2026-01-31",
+      "return": 0.24835673513385964
+    },
+    {
+      "Date": "2026-09-30",
+      "return": 0.23077214235255836
+    },
+    {
+      "Date": "2026-05-31",
+      "return": 0.17151735566371137
+    }
+  ],
+  "bottom_months": [
+    {
+      "Date": "2026-07-31",
+      "return": -0.3274967279470559
+    },
+    {
+      "Date": "2023-01-31",
+      "return": -0.16857591235883151
+    },
+    {
+      "Date": "2023-12-31",
+      "return": -0.142261977509707
+    },
+    {
+      "Date": "2024-07-31",
+      "return": -0.1414248562827066
+    },
+    {
+      "Date": "2021-12-31",
+      "return": -0.13362989304246106
+    }
+  ],
+  "top_1_months_set_zero_total": 0.47640013160603645,
+  "top_3_months_set_zero_total": -0.05771031229207835,
+  "top_5_months_set_zero_total": -0.3464812481089711,
+  "hypothetical_borrow_fee_sensitivity": {
+    "0.01": {
+      "months": 60,
+      "total_return": 0.9748326846689142,
+      "cagr": 0.1457927272132713,
+      "vol": 0.40857904653495086,
+      "sharpe0": 0.5331015117001902
+    },
+    "0.03": {
+      "months": 60,
+      "total_return": 0.787559534884265,
+      "cagr": 0.12318708997145333,
+      "vol": 0.4085790465349509,
+      "sharpe0": 0.48415137544231124
+    },
+    "0.05": {
+      "months": 60,
+      "total_return": 0.6177735172898935,
+      "cagr": 0.10099043085043768,
+      "vol": 0.4085790465349509,
+      "sharpe0": 0.4352012391844327
+    },
+    "0.1": {
+      "months": 60,
+      "total_return": 0.25962046859961374,
+      "cagr": 0.04724414713859093,
+      "vol": 0.40857904653495086,
+      "sharpe0": 0.31282589853973614
+    }
+  },
+  "cash_funded_half_exposure": {
+    "months": 60,
+    "total_return": 0.5945038522992474,
+    "cagr": 0.0978047727592839,
+    "vol": 0.20428952326747543,
+    "sharpe0": 0.5575765798291294
+  },
+  "zero_rf_mean_t_stat_iid": 1.2467791351597717,
+  "daily_mark_check": {
+    "valid_days": 1254,
+    "missing_days": 0,
+    "max_drawdown": -0.511474150980326,
+    "max_drawdown_date": "2026-07-29",
+    "max_gross_exposure_between_rebalances": 3.423290579503945,
+    "maximum_month_end_reconciliation_error": 2.220446049250313e-16
+  },
+  "rename_double_trades": [],
+  "largest_stock_month_contributions": [
+    {
+      "Date": "2026-05-31",
+      "Ticker": "MU",
+      "Weight": 0.1,
+      "Stock_Return": 0.8775621972364602,
+      "Monthly_Return_Contribution": 0.08775621972364603
+    },
+    {
+      "Date": "2026-04-30",
+      "Ticker": "SNDK",
+      "Weight": 0.1,
+      "Stock_Return": 0.7258632596983634,
+      "Monthly_Return_Contribution": 0.07258632596983634
+    },
+    {
+      "Date": "2026-04-30",
+      "Ticker": "STX",
+      "Weight": 0.1,
+      "Stock_Return": 0.7195221945783081,
+      "Monthly_Return_Contribution": 0.07195221945783081
+    },
+    {
+      "Date": "2024-11-30",
+      "Ticker": "PLTR",
+      "Weight": 0.1,
+      "Stock_Return": 0.6140519637750632,
+      "Monthly_Return_Contribution": 0.06140519637750633
+    },
+    {
+      "Date": "2026-04-30",
+      "Ticker": "WDC",
+      "Weight": 0.1,
+      "Stock_Return": 0.606418053564006,
+      "Monthly_Return_Contribution": 0.060641805356400603
+    },
+    {
+      "Date": "2026-05-31",
+      "Ticker": "SNDK",
+      "Weight": 0.1,
+      "Stock_Return": 0.5457952644053343,
+      "Monthly_Return_Contribution": 0.05457952644053343
+    },
+    {
+      "Date": "2026-04-30",
+      "Ticker": "MU",
+      "Weight": 0.1,
+      "Stock_Return": 0.5307837418203134,
+      "Monthly_Return_Contribution": 0.053078374182031346
+    },
+    {
+      "Date": "2026-01-31",
+      "Ticker": "STX",
+      "Weight": 0.1,
+      "Stock_Return": 0.48040949290115886,
+      "Monthly_Return_Contribution": 0.04804094929011589
+    },
+    {
+      "Date": "2026-01-31",
+      "Ticker": "MU",
+      "Weight": 0.1,
+      "Stock_Return": 0.45362821959152666,
+      "Monthly_Return_Contribution": 0.04536282195915267
+    },
+    {
+      "Date": "2026-01-31",
+      "Ticker": "WDC",
+      "Weight": 0.1,
+      "Stock_Return": 0.45254530421154593,
+      "Monthly_Return_Contribution": 0.0452545304211546
+    },
+    {
+      "Date": "2023-10-31",
+      "Ticker": "SEDG",
+      "Weight": -0.1,
+      "Stock_Return": -0.41355879723836053,
+      "Monthly_Return_Contribution": 0.04135587972383606
+    },
+    {
+      "Date": "2025-04-30",
+      "Ticker": "PLTR",
+      "Weight": 0.1,
+      "Stock_Return": 0.4033175391008723,
+      "Monthly_Return_Contribution": 0.04033175391008723
+    }
+  ],
+  "largest_2026_contribution_sums": {
+    "MU": 0.1853262609056428,
+    "SNDK": 0.15475560002400485,
+    "STX": 0.15352959438821145,
+    "WDC": 0.12584521939454138,
+    "TTD": 0.10255314976246757,
+    "FIX": 0.08529492712418842,
+    "INTC": 0.04584567344331429,
+    "LITE": 0.04101937425999505,
+    "LULU": 0.04019295543856562,
+    "TER": 0.03992125535374801,
+    "FISV": 0.034971456693659864,
+    "CSGP": 0.03471644350667824
+  },
+  "long_short_monthly_sums": {
+    "false": -0.4599755740512067,
+    "true": 1.6893419992975511
+  },
+  "single_factor_diagnostic": {
+    "monthly_intercept_rf0": 0.016045317044061005,
+    "market_beta": 0.2499432948598159,
+    "alpha_t_hac3": 1.3358944059032216,
+    "r_squared": 0.009184856992828672
+  }
+}

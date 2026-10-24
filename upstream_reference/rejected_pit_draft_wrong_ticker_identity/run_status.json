@@ -1,0 +1,4 @@
+{
+  "status": "complete_available_data",
+  "warning": "See unavailable_members.csv; missing historical prices mean residual coverage bias."
+}

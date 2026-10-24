@@ -1,0 +1,12 @@
+{
+  "scope": "Read-only research audit; production strategy and outputs were not changed.",
+  "files": {
+    "/Users/zhangjiayu/Desktop/momentum-backtest/outputs/report.json": "3fd6467869678afc51c42523f378cda2da99268e3c2153d71a73edaa9bb3e500",
+    "/Users/zhangjiayu/Desktop/momentum-backtest/outputs/holdings.csv": "17a31360e92875370a91576845c33aaf550b35d26b1b745b18283c0216c9611f",
+    "/Users/zhangjiayu/Desktop/momentum-backtest/outputs/monthly_returns.csv": "08181196131b1bb16ed480f8e06bdefed114c576c9da57327de99c5405e28186",
+    "/Users/zhangjiayu/Desktop/momentum-backtest/data_cache/prices_pit_2020-07-01_2026-09-30_b65f76ce6ac1.csv": "70a84189cb3ad7859803bb8cb34283793eb6e4bd72e5c767e043d8c63a90fdf9",
+    "/Users/zhangjiayu/Desktop/momentum-backtest/data_cache/membership/snapshots.csv": "d03fceac43f9cf3b3e41bc6a877ccfbc3a4f14f300dc2cb0d129835b0a091d2a",
+    "/Users/zhangjiayu/Desktop/momentum-backtest/backtest.py": "224fc0b60f8103e2e3af3aae972e5af5c5de9311aef720fb550014c3c79705ce",
+    "/Users/zhangjiayu/Desktop/momentum-backtest/data.py": "68d6907081507af9576bd805c6501cd5df7ec0ff6b35cc7c03d203e3584d455d"
+  }
+}

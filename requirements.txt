@@ -1,9 +1,6 @@
-pandas
-numpy
-yfinance
-pandas-datareader
-statsmodels
-matplotlib
-lxml
-htm15lib
-beautifulsoup4
+pandas>=2.2,<4
+numpy>=1.26,<3
+yfinance>=0.2.54,<2
+matplotlib>=3.8,<4
+requests>=2.31,<3
+lxml>=5,<7

@@ -1,81 +1,95 @@
-import pandas as pd
-import numpy as np
-import yfinance as yf
-import pandas_datareader.data as pdr
-import urllib.request, zipfile, io
-import requests
+"""Download the union of historical members, including former constituents."""
+import hashlib
+import json
+import warnings
 from pathlib import Path
-from config import (
-    DATA_DIR,
-    SP500_URL,
-    BACKTEST_START_DATE,
-    BACKTEST_END_DATE,
-    MOMENTUM_WINDOW,
-    SKIP_RECENT,
-    MIN_HISTORY_MONTHS,
-    N_QUANTILES,
-    LONG_QUANTILE,
-    SHORT_QUANTILE,
-    MIN_PRICE,
-    BENCHMARK_TICKER,
-    ANNUALIZATION_FACTOR,
-    ROLLING_SHARPE_WINDOW
-)
+import pandas as pd
+import yfinance as yf
+from config import DATA_DIR
+from membership import formation_dates
 
-def get_sp500_tickers() -> list[str]:
-    """Fetches the list of S&P 500 tickers from Wikipedia."""
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
-    response = requests.get(SP500_URL, headers=headers)
-    tables = pd.read_html(io.StringIO(response.text))
-    sp500_table = tables[0]
-    tickers = sp500_table["Symbol"].tolist()
-    tickers = [t.replace(".", "-") for t in tickers]
-    return tickers
+if hasattr(pd.errors, 'Pandas4Warning'):
+    warnings.filterwarnings('ignore', category=pd.errors.Pandas4Warning, module=r'yfinance\..*')
 
-def download_prices(tickers: list[str], start_date: str = BACKTEST_START_DATE, end_date: str = BACKTEST_END_DATE) -> pd.DataFrame:
-    """Downloads historical price data for the given tickers and date range."""
-    data = yf.download(tickers, start=start_date, end=end_date, progress=False)
-    prices = data['Close'].dropna(axis=1, how='all')
-    return prices
+# Provider labels for the SAME company's renamed shares, not successor/acquirer
+# proxies. Membership always uses the historical ticker before applying this map.
+# Dates/reasons are documented in data_cache/membership/ticker_aliases.csv.
+ALIASES = {'ABC':'COR', 'ANTM':'ELV', 'BK':'BNY', 'BLL':'BALL',
+           'CDAY':'DAY', 'FB':'META', 'FI':'FISV', 'FLT':'CPAY',
+           'GPS':'GAP', 'MMC':'MRSH', 'NLOK':'GEN', 'PKI':'RVTY',
+           'RE':'EG', 'WLTW':'WTW', 'FBHS':'FBIN', 'FRC':'FRCB'}
 
-def resample_monthly(prices: pd.DataFrame) -> pd.DataFrame:
-    """Resamples daily price data to monthly frequency, taking the last price of each month."""
-    monthly_prices = prices.resample('ME').last()
-    return monthly_prices
+REUSED_SYMBOLS = {'INFO':'Yahoo now resolves to Harbor PanAgora ETF, not historical IHS Markit',
+                  'PARA':'Yahoo now resolves to Banzai/Parabolic, not historical Paramount Global'}
 
-def filter_penny_stocks(prices: pd.DataFrame, min_price: float = MIN_PRICE) -> pd.DataFrame:
-    """Filters out stocks that are below the specified minimum price."""
-    return prices[prices >= min_price].dropna(axis=1, how='all')
 
-def download_benchmark(ticker: str = BENCHMARK_TICKER, start_date: str = BACKTEST_START_DATE, end_date: str = BACKTEST_END_DATE) -> pd.Series:
-    """Downloads historical price data for the benchmark ticker."""
-    data = yf.download(ticker, start=start_date, end=end_date, progress=False)
-    benchmark_prices = data['Close'].squeeze().dropna()
-    benchmark_prices = benchmark_prices.resample('ME').last()
-    benchmark_returns = benchmark_prices.pct_change().dropna()
-    return benchmark_returns
+def provider_symbol(ticker):
+    return ALIASES.get(ticker, ticker)
 
-def get_ff_factors(start_date: str = BACKTEST_START_DATE, end_date: str = BACKTEST_END_DATE) -> pd.DataFrame:
-    """Downloads Fama-French factors from Kenneth French's data library."""
-    ff_factors = pdr.DataReader("F-F_Research_Data_Factors", "famafrench", start=start_date, end=end_date)
-    ff_monthly = ff_factors[0]
-    ff_monthly.index = ff_monthly.index.to_timestamp(how='end')
-    ff_monthly = ff_monthly / 100
-    return ff_monthly
 
-def load_all_data() -> tuple[pd.DataFrame, pd.Series, pd.DataFrame]:
-    """Loads all necessary data: stock prices, benchmark returns, and Fama-French factors."""
+def load_prices(start, end, membership, csv=None, refresh=False):
+    warmup = (pd.Timestamp(start)-pd.DateOffset(months=15)).strftime('%Y-%m-%d')
+    historical = membership.union(formation_dates(start,end))
+    providers = sorted(set(map(provider_symbol,historical)) | {'SPY'})
     DATA_DIR.mkdir(exist_ok=True)
-    cache_file = DATA_DIR / "prices.parquet"
-    if cache_file.exists():
-        print("Loading data from cache...")
-        prices = pd.read_parquet(cache_file)
+    key = hashlib.sha256(','.join(providers).encode()).hexdigest()[:12]
+    cache = DATA_DIR/f'prices_pit_{warmup}_{end}_{key}.csv'
+    source = 'Yahoo Finance; auto_adjust=True; historical-member union'
+    if csv:
+        frame = pd.read_csv(csv,index_col=0,parse_dates=True)
+        source = str(Path(csv).resolve())
+        cache = Path(csv)
+    elif cache.exists() and not refresh:
+        frame = pd.read_csv(cache,index_col=0,parse_dates=True)
     else:
-        tickers = get_sp500_tickers()
-        prices = download_prices(tickers)
-        prices.to_parquet(cache_file)
-    monthly_prices = resample_monthly(prices)
-    filtered_prices = filter_penny_stocks(monthly_prices)
-    benchmark_returns = download_benchmark()
-    ff_factors = get_ff_factors()
-    return filtered_prices, benchmark_returns, ff_factors
+        frame = pd.DataFrame()
+        # Reuse genuine adjusted prices from the preceding run; membership is
+        # reconstructed independently and the historical union is still fetched.
+        old_cache = DATA_DIR/f'prices_{warmup}_{end}.csv'
+        if old_cache.exists() and not refresh:
+            old = pd.read_csv(old_cache,index_col=0,parse_dates=True)
+            available = [x for x in providers if x in old and old[x].notna().any()]
+            frame = old[available].copy()
+        missing = [x for x in providers if x not in frame or frame[x].dropna().empty]
+        for offset in range(0,len(missing),30):
+            batch = missing[offset:offset+30]
+            print(f'Downloading historical symbols {offset+1}-{min(offset+30,len(missing))}/{len(missing)}',flush=True)
+            raw = yf.download(batch,start=warmup,end=(pd.Timestamp(end)+pd.Timedelta(days=1)).strftime('%Y-%m-%d'),auto_adjust=True,progress=False,threads=4)
+            if not raw.empty:
+                closes = raw['Close']
+                if isinstance(closes,pd.Series):
+                    closes = closes.to_frame(batch[0])
+                frame = pd.concat([frame,closes],axis=1)
+        frame = frame.reindex(columns=providers)
+        frame.to_csv(cache)
+    frame.index = pd.to_datetime(frame.index,utc=True).tz_convert(None).normalize()
+    frame = frame.sort_index().loc[warmup:end].apply(pd.to_numeric,errors='raise')
+    if frame.index.has_duplicates or frame.columns.has_duplicates:
+        raise ValueError('Duplicate price dates or tickers')
+    if 'SPY' not in frame or frame.SPY.dropna().empty:
+        raise ValueError('SPY benchmark missing')
+    if (frame<=0).any().any():
+        raise ValueError('Nonpositive adjusted prices')
+    if not csv:
+        for ticker in REUSED_SYMBOLS:
+            if ticker in frame:
+                frame[ticker] = float('nan')
+    # Historical symbols remain distinct membership identities, even where a
+    # provider serves an old ticker's series under a later rename.
+    resolved = {t:(t if csv and t in frame else provider_symbol(t)) for t in historical}
+    prices = pd.DataFrame({t:frame[resolved[t]] if resolved[t] in frame else float('nan') for t in historical},index=frame.index)
+    prices.attrs['price_symbols'] = resolved
+    prices['SPY'] = frame.SPY
+    coverage = pd.DataFrame([{'Ticker':t,'Price_Ticker':resolved[t],'observations':int(prices[t].notna().sum()),
+                             'first_price':str(prices[t].first_valid_index().date()) if prices[t].notna().any() else None,
+                             'last_price':str(prices[t].last_valid_index().date()) if prices[t].notna().any() else None} for t in historical])
+    metadata = {'source':source,'price_cache':str(cache.resolve()),'warmup_start':warmup,
+                'requested_stock_count':len(historical),'stocks_without_prices':coverage.loc[coverage.observations==0,'Ticker'].tolist(),
+                'universe':'point-in-time historical S&P 500 membership; available-price subset',
+                'membership':membership.metadata,'ticker_aliases':resolved,
+                'rejected_reused_symbols':REUSED_SYMBOLS if not csv else {},
+                'limitations':['Community reconstructed membership, not a licensed official full security master.',
+                               'Historical member prices unavailable from Yahoo are explicitly reported, not replaced by surviving companies.',
+                               'No inferred delisting returns. Missing held-stock returns stop the backtest.',
+                               'Borrow availability, borrow fees and financing are not modelled.']}
+    return prices, metadata, coverage

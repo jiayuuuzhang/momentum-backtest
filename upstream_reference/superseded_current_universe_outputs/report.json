@@ -1,0 +1,38 @@
+{
+  "source": "Yahoo Finance; auto_adjust=True",
+  "warmup_start": "2020-07-01",
+  "requested_stock_count": 503,
+  "stocks_without_prices": [
+    "VYLR"
+  ],
+  "requested_start": "2021-10-01",
+  "requested_end": "2026-09-30",
+  "actual_first_month": "2021-10-31",
+  "actual_last_month": "2026-09-30",
+  "cost_bps": 10,
+  "universe": "current S&P500; survivorship bias",
+  "long_count": 10,
+  "short_count": 10,
+  "selection": "highest and lowest 12-1 momentum; fixed stock counts",
+  "gross_exposure": 2,
+  "short_borrow_and_financing": "excluded",
+  "drawdown_frequency": "monthly",
+  "metrics": {
+    "strategy": {
+      "months": 60,
+      "total_return": 6.178184332538169,
+      "annualized_return": 0.4832109441155006,
+      "annualized_volatility": 0.4811624975469645,
+      "sharpe_rf_zero": 1.0597247370811473,
+      "max_drawdown_monthly": -0.4040476842332984
+    },
+    "SPY": {
+      "months": 60,
+      "total_return": 0.9000405785249199,
+      "annualized_return": 0.1369793452684005,
+      "annualized_volatility": 0.15666457303161077,
+      "sharpe_rf_zero": 0.9007347095836925,
+      "max_drawdown_monthly": -0.23927167497654844
+    }
+  }
+}
