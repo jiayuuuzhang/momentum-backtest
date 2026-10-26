@@ -1,7 +1,5 @@
 # S&P 500 Momentum Strategy with Historical Membership
 
-Adapted from [adithya1309/momentum-backtest](https://github.com/adithya1309/momentum-backtest). Each formation-date ranking is restricted to stocks that belonged to the S&P 500 on that date. The program does not fall back to today's constituent list.
-
 ## Installation and execution
 
 From a fresh checkout:
